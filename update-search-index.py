@@ -53,14 +53,21 @@ def scrape_all_blogs():
                 href = read_more.get('href', '')
                 slug = href.rstrip('/').split('/')[-1]
 
+            # Date from hidden CMS field
+            date_el = item.find(class_='unhidden-date')
+            date = date_el.get_text(strip=True) if date_el else ''
+
             if title and slug:
-                all_posts.append({
+                post = {
                     't': title,
                     's': slug,
                     'e': excerpt,
                     'i': image,
                     'h': href,
-                })
+                }
+                if date:
+                    post['d'] = date
+                all_posts.append(post)
 
         # Check for next page
         has_next = bool(soup.find('a', class_='w-pagination-next'))
