@@ -57,6 +57,12 @@ def scrape_all_blogs():
             date_el = item.find(class_='unhidden-date')
             date = date_el.get_text(strip=True) if date_el else ''
 
+            # Get full text from all paragraphs for search
+            full_text = ''
+            if block6:
+                all_p = block6.find_all('p', recursive=False)
+                full_text = ' '.join(p.get_text(strip=True) for p in all_p if p.get_text(strip=True))
+
             if title and slug:
                 post = {
                     't': title,
@@ -65,6 +71,8 @@ def scrape_all_blogs():
                     'i': image,
                     'h': href,
                 }
+                if full_text and len(full_text) > len(excerpt):
+                    post['b'] = full_text[:1000]
                 if date:
                     post['d'] = date
                 all_posts.append(post)
