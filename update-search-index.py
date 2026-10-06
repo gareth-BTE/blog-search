@@ -43,11 +43,11 @@ def rejection_reason(posts, previous):
                     f'down from {previous} (expected at least {floor})')
     return None
 
-def parse_page(html):
+def parse_page(html, title_lookup=None):
     """Extract the blog posts from one rendered listing page."""
-    return parse_items(BeautifulSoup(html, 'html.parser'))
+    return parse_items(BeautifulSoup(html, 'html.parser'), title_lookup)
 
-def parse_items(soup):
+def parse_items(soup, title_lookup=None):
     posts = []
 
     for item in soup.find_all('div', class_='collection-item'):
@@ -75,6 +75,11 @@ def parse_items(soup):
         if read_more:
             href = read_more.get('href', '')
             slug = href.rstrip('/').split('/')[-1]
+
+        # Posts made after the 2026-09 heading split leave the listing's
+        # blogheading empty; their title is only on the post page itself.
+        if not title and href and title_lookup:
+            title = title_lookup(href)
 
         # Date from hidden CMS field
         date_el = item.find(class_='unhidden-date')
@@ -107,6 +112,11 @@ def scrape_all_blogs():
     session.headers.update(HEADERS)
     session.verify = False
 
+    def title_from_post_page(href):
+        resp = session.get(BLOG_URL.rsplit('/', 1)[0] + href, timeout=20)
+        h = BeautifulSoup(resp.text, 'html.parser').find(class_='h4-white')
+        return h.get_text(' ', strip=True) if h and resp.status_code == 200 else ''
+
     all_posts = []
     page = 1
 
@@ -117,7 +127,7 @@ def scrape_all_blogs():
             break
 
         soup = BeautifulSoup(resp.text, 'html.parser')
-        posts = parse_items(soup)
+        posts = parse_items(soup, title_from_post_page)
         if not posts:
             break
 

@@ -43,3 +43,26 @@ def test_posts_carry_link_date_and_image():
         assert p["h"].startswith("/blogs/")
         assert p["i"].startswith("http")
     assert sum(1 for p in posts() if p.get("d")) >= 8
+
+
+# Posts created after the heading split (2026-09) leave the listing's
+# blogheading empty; the 2026-09-26 post was dropped from the index for it.
+EMPTY_HEADING = (
+    '<div role="listitem" class="collection-item w-dyn-item">'
+    '<div class="div-block-7"><img src="https://cdn.example/x.jpg" class="blog-image"/></div>'
+    '<div class="div-block-6"><div class="blogheading blogs w-dyn-bind-empty w-richtext"></div>'
+    '<p>Excerpt text.</p><div class="unhidden-date">September 26, 2026</div>'
+    '<a href="/blogs/break-for-employers" class="w-button">Read More</a></div></div>'
+)
+
+
+def test_post_with_empty_listing_heading_takes_title_from_its_page():
+    spec = importlib.util.spec_from_file_location("updater", ROOT / "update-search-index.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    asked = []
+    lookup = lambda href: asked.append(href) or "Break For Employers"
+    got = mod.parse_page(EMPTY_HEADING, title_lookup=lookup)
+    assert asked == ["/blogs/break-for-employers"]
+    assert [(p["s"], p["t"], p.get("d")) for p in got] == [
+        ("break-for-employers", "Break For Employers", "September 26, 2026")]
