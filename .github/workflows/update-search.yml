@@ -35,3 +35,6 @@ jobs:
           git diff --staged --quiet || git commit -m "Update blog search index $(date -u +%Y-%m-%d)"
           git pull --rebase
           git push
+
+      - name: Purge jsDelivr cache
+        run: curl -sf https://purge.jsdelivr.net/gh/gareth-BTE/blog-search@main/blog-search-index.js
